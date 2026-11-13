@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="記帳">
+  <meta name="application-name" content="記帳">
+  <meta name="theme-color" content="#F3F0EB" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121411" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="個人收支記帳（港幣）">
+  <title>記帳</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #F3F0EB;
+      --bg-elevated: #FFFcf7;
+      --surface: #FFFFFF;
+      --surface-2: #EBE7E0;
+      --ink: #1C1A17;
+      --muted: #6F6A63;
+      --line: rgba(28, 26, 23, 0.10);
+      --income: #0B7A58;
+      --income-bg: #D8F3E8;
+      --income-ink: #086348;
+      --expense: #C02732;
+      --expense-bg: #FBE3E4;
+      --expense-ink: #9F1D28;
+      --shadow: 0 10px 30px rgba(28, 26, 23, 0.08);
+      --sheet: #FFFcf7;
+      --overlay: rgba(28, 26, 23, 0.42);
+      --danger: #C02732;
+      --focus: #0B7A58;
+      --today: #1C1A17;
+      --radius: 18px;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "PingFang TC", "Hiragino Sans GB", "Noto Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121411;
+        --bg-elevated: #1A1C19;
+        --surface: #1E211E;
+        --surface-2: #2A2D29;
+        --ink: #F3F0EB;
+        --muted: #A9A49B;
+        --line: rgba(243, 240, 235, 0.12);
+        --income: #3DDBA8;
+        --income-bg: #143328;
+        --income-ink: #7BE8C3;
+        --expense: #FF7A84;
+        --expense-bg: #3A181C;
+        --expense-ink: #FFB3B8;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        --sheet: #1E211E;
+        --overlay: rgba(0, 0, 0, 0.62);
+        --danger: #FF7A84;
+        --focus: #3DDBA8;
+        --today: #F3F0EB;
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      min-height: 100%;
+      min-height: 100dvh;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+    button, input, textarea, select { font-family: inherit; }
+    button {
+      appearance: none;
+      border: 0;
+      background: none;
+      color: inherit;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+    input, textarea {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 16px;
+    }
+    input:focus, textarea:focus, button:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .app {
+      width: min(560px, 100%);
+      margin: 0 auto;
+      padding: calc(10px + env(safe-area-inset-top, 0px)) 16px calc(28px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 2px 16px;
+    }
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+    }
+    .brand .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .action {
+      min-height: 92px;
+      border-radius: 22px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 18px;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: 0.06em;
+      box-shadow: var(--shadow);
+      transition: transform 0.12s ease;
+    }
+    .action:active { transform: scale(0.98); }
+    .action .mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.2);
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .action-income { background: linear-gradient(160deg, #14936A 0%, #0B7A58 100%); }
+    .action-expense { background: linear-gradient(160deg, #D73A44 0%, #C02732 100%); }
+    @media (prefers-color-scheme: dark) {
+      .action-income { background: linear-gradient(160deg, #1AA87A 0%, #0E8A62 100%); }
+      .action-expense { background: linear-gradient(160deg, #E24952 0%, #C02732 100%); }
+    }
+
+    .hint {
+      margin: 14px 2px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .summary {
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    .summary .cell {
+      text-align: center;
+      padding: 4px 8px;
+    }
+    .summary .cell + .cell {
+      border-left: 1px solid var(--line);
+    }
+    .summary .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .summary .value {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+      word-break: break-all;
+    }
+    .value.income { color: var(--income); }
+    .value.expense { color: var(--expense); }
+    .value.balance.pos { color: var(--income); }
+    .value.balance.neg { color: var(--expense); }
+
+    .cal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 22px 0 10px;
+      gap: 8px;
+    }
+    .cal-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .cal-title h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .today-btn {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--income-ink);
+      background: var(--income-bg);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .nav-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 18px;
+    }
+
+    .dow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 0 8px;
+    }
+    .dow span:first-child,
+    .dow span:last-child { color: var(--expense); opacity: 0.8; }
+
+    .cal {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .day {
+      min-height: 68px;
+      border-radius: 12px;
+      padding: 5px 3px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+    .day.in-month { background: var(--surface); border-color: var(--line); }
+    .day.out { opacity: 0.42; }
+    .day.has { background: var(--bg-elevated); }
+    .day .num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    .day.is-today .num {
+      background: var(--today);
+      color: var(--bg);
+    }
+    .day .amt {
+      font-size: 9px;
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .day .amt.income { color: var(--income); }
+    .day .amt.expense { color: var(--expense); }
+
+    /* overlays */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--overlay);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+      z-index: 40;
+    }
+    .backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: min(92dvh, 92%);
+      overflow: auto;
+      background: var(--sheet);
+      border-radius: 24px 24px 0 0;
+      z-index: 50;
+      transform: translateY(110%);
+      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      padding: 8px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -16px 40px rgba(0,0,0,0.16);
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet.menu { z-index: 60; }
+    .sheet.confirm-sheet { z-index: 70; }
+    .handle {
+      width: 40px;
+      height: 4px;
+      border-radius: 4px;
+      background: var(--surface-2);
+      margin: 6px auto 14px;
+    }
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .sheet-head h3 { margin: 0; font-size: 20px; font-weight: 700; }
+    .close-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      font-size: 18px;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field label.lbl {
+      display: block;
+      font-size: 12px;
+      font-weight: 650;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+    .amount-box {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 16px;
+    }
+    .amount-box .ccy {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--muted);
+    }
+    #amountInput {
+      flex: 1;
+      min-width: 0;
+      font-size: 32px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+    }
+    #amountInput::placeholder { color: var(--muted); opacity: 0.55; }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .chip.on {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    .text-box, .date-box {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+    #noteInput { width: 100%; resize: none; min-height: 44px; }
+    #dateInput { width: 100%; min-height: 24px; }
+
+    .save-btn {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 16px;
+      background: var(--ink);
+      color: var(--bg);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-top: 6px;
+    }
+    .save-btn:disabled { opacity: 0.4; }
+    .save-btn.income-mode { background: #0B7A58; color: #fff; }
+    .save-btn.expense-mode { background: #C02732; color: #fff; }
+
+    .day-meta {
+      display: flex;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      margin: -6px 0 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    .entry-list { display: flex; flex-direction: column; gap: 8px; }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 28px 8px;
+      font-size: 14px;
+    }
+    .entry {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 12px;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 12px 12px 14px;
+    }
+    .entry .cat {
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .entry .note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+      word-break: break-word;
+    }
+    .entry .money {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      font-size: 15px;
+    }
+    .entry-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .mini {
+      font-size: 13px;
+      font-weight: 650;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--surface-2);
+    }
+    .mini.danger { color: var(--danger); }
+
+    .menu-item {
+      width: 100%;
+      text-align: left;
+      padding: 14px 4px;
+      font-size: 16px;
+      font-weight: 650;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .menu-item:last-of-type { border-bottom: 0; }
+    .menu-desc { font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+    .confirm-msg {
+      font-size: 15px;
+      margin: 0 0 20px;
+      line-height: 1.6;
+    }
+    .confirm-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .confirm-actions button {
+      min-height: 48px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .btn-ghost { background: var(--surface-2); }
+    .btn-danger { background: var(--danger); color: #fff; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      transform: translate(-50%, 16px);
+      background: var(--ink);
+      color: var(--bg);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 650;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 80;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    body.locked { overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <h1>記帳</h1>
+        <div class="sub" id="todayLabel"></div>
+      </div>
+      <button type="button" class="icon-btn" id="menuBtn" aria-label="備份與設定">⋯</button>
+    </header>
+
+    <div class="actions">
+      <button type="button" class="action action-income" id="incomeBtn" aria-label="新增收入">
+        <span class="mark">＋</span>
+        <span>收入</span>
+      </button>
+      <button type="button" class="action action-expense" id="expenseBtn" aria-label="新增支出">
+        <span class="mark">－</span>
+        <span>支出</span>
+      </button>
+    </div>
+    <p class="hint" id="emptyHint" hidden>按上面按鈕新增一筆紀錄，資料會保存在這部手機裡。</p>
+
+    <section class="summary" aria-label="本月摘要">
+      <div class="cell">
+        <div class="label">本月收入</div>
+        <div class="value income" id="sumIncome">HK$0</div>
+      </div>
+      <div class="cell">
+        <div class="label">本月支出</div>
+        <div class="value expense" id="sumExpense">HK$0</div>
+      </div>
+      <div class="cell">
+        <div class="label">結餘</div>
+        <div class="value balance" id="sumBalance">HK$0</div>
+      </div>
+    </section>
+
+    <div class="cal-head">
+      <button type="button" class="nav-btn" id="prevMonth" aria-label="上一個月">‹</button>
+      <div class="cal-title">
+        <h2 id="monthTitle">2026年11月</h2>
+        <button type="button" class="today-btn" id="jumpToday" hidden>今日</button>
+      </div>
+      <button type="button" class="nav-btn" id="nextMonth" aria-label="下一個月">›</button>
+    </div>
+    <div class="dow" aria-hidden="true">
+      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+    </div>
+    <div class="cal" id="calendar" role="grid" aria-label="月曆"></div>
+  </div>
+
+  <div class="backdrop" id="entryBackdrop"></div>
+  <div class="sheet" id="entrySheet" role="dialog" aria-modal="true" aria-labelledby="entryTitle" hidden>
+    <div class="handle"></div>
+    <div class="sheet-head">
+      <h3 id="entryTitle">新增支出</h3>
+      <button type="button" class="close-btn" id="closeEntry" aria-label="關閉">×</button>
+    </div>
+    <div class="field">
+      <label class="lbl" for="amountInput">金額</label>
+      <div class="amount-box">
+        <span class="ccy">HK$</span>
+        <input id="amountInput" type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0.00" aria-label="金額" enterkeyhint="done">
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">分類（可選）</div>
+      <div class="chips" id="categoryChips"></div>
+    </div>
+    <div class="field">
+      <label class="lbl" for="noteInput">備註（可選）</label>
+      <div class="text-box">
+        <textarea id="noteInput" rows="2" maxlength="200" placeholder="例如：午餐、月薪"></textarea>
+      </div>
+    </div>
+    <div class="field">
+      <label class="lbl" for="dateInput">日期</label>
+      <div class="date-box">
+        <input id="dateInput" type="date" aria-label="日期">
+      </div>
+    </div>
+    <button type="button" class="save-btn" id="saveBtn">儲存</button>
+  </div>
+
+  <div class="backdrop" id="dayBackdrop"></div>
+  <div class="sheet" id="daySheet" role="dialog" aria-modal="true" aria-labelledby="dayTitle" hidden>
+    <div class="handle"></div>
+    <div class="sheet-head">
+      <h3 id="dayTitle">當日紀錄</h3>
+      <button type="button" class="close-btn" id="closeDay" aria-label="關閉">×</button>
+    </div>
+    <div class="day-meta" id="dayMeta"></div>
+    <div class="entry-list" id="dayList"></div>
+  </div>
+
+  <div class="backdrop" id="menuBackdrop"></div>
+  <div class="sheet menu" id="menuSheet" role="dialog" aria-modal="true" aria-labelledby="menuTitle" hidden>
+    <div class="handle"></div>
+    <div class="sheet-head">
+      <h3 id="menuTitle">備份</h3>
+      <button type="button" class="close-btn" id="closeMenu" aria-label="關閉">×</button>
+    </div>
+    <button type="button" class="menu-item" id="exportBtn">
+      <span>
+        匯出備份
+        <div class="menu-desc">下載 JSON 檔，方便另存或換機</div>
+      </span>
+    </button>
+    <button type="button" class="menu-item" id="importBtn">
+      <span>
+        匯入備份
+        <div class="menu-desc">以備份檔取代現有紀錄</div>
+      </span>
+    </button>
+    <input id="importFile" type="file" accept="application/json,.json" hidden>
+  </div>
+
+  <div class="backdrop" id="confirmBackdrop"></div>
+  <div class="sheet confirm-sheet" id="confirmSheet" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" hidden>
+    <div class="handle"></div>
+    <div class="sheet-head">
+      <h3 id="confirmTitle">請確認</h3>
+      <button type="button" class="close-btn" id="closeConfirm" aria-label="關閉">×</button>
+    </div>
+    <p class="confirm-msg" id="confirmMsg"></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn-ghost" id="confirmCancel">取消</button>
+      <button type="button" class="btn-danger" id="confirmOk">確定</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var STORAGE_KEY = "hk-bookkeeping-v1";
+    var CATS = {
+      expense: ["飲食", "交通", "購物", "娛樂", "住屋", "其他"],
+      income: ["薪金", "獎金", "投資", "其他"]
+    };
+    var WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+
+    var entries = [];
+    var viewYear;
+    var viewMonth;
+    var editingId = null;
+    var entryType = "expense";
+    var selectedCategory = "";
+    var selectedDate = "";
+    var confirmCallback = null;
+    var toastTimer = null;
+
+    var $ = function (id) { return document.getElementById(id); };
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function toISODate(d) {
+      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    }
+
+    function parseISODate(s) {
+      var p = String(s || "").split("-");
+      return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    }
+
+    function todayISO() { return toISODate(new Date()); }
+
+    function isValidISODate(s) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+      var d = parseISODate(s);
+      return !isNaN(d.getTime()) && toISODate(d) === s;
+    }
+
+    function weekdayIndex(s) { return parseISODate(s).getDay(); }
+
+    function formatLongDate(s) {
+      var d = parseISODate(s);
+      return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日星期" + WEEKDAYS[d.getDay()];
+    }
+
+    function formatShortDate(s) {
+      var d = parseISODate(s);
+      return (d.getMonth() + 1) + "月" + d.getDate() + "日";
+    }
+
+    function formatHKD(n) {
+      var num = Number(n) || 0;
+      var abs = Math.abs(num);
+      var formatted = abs.toLocaleString("en-HK", {
+        minimumFractionDigits: abs % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2
+      });
+      return "HK$" + formatted;
+    }
+
+    function compactAmt(n) {
+      var abs = Math.abs(n);
+      var body;
+      if (abs >= 100000000) body = (abs / 100000000).toFixed(abs >= 1000000000 ? 0 : 1) + "億";
+      else if (abs >= 10000) body = (abs / 10000).toFixed(abs >= 100000 ? 0 : 1) + "萬";
+      else if (abs >= 1000) body = Math.round(abs).toLocaleString("en-HK");
+      else body = abs % 1 === 0 ? String(abs) : abs.toFixed(1);
+      body = body.replace(/\.0(?=[萬億])/, "");
+      return body;
+    }
+
+    function uid() {
+      return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+
+    function load() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) { entries = []; return; }
+        var data = JSON.parse(raw);
+        if (Array.isArray(data)) entries = data.map(normalizeEntry).filter(Boolean);
+        else if (data && Array.isArray(data.entries)) entries = data.entries.map(normalizeEntry).filter(Boolean);
+        else entries = [];
+      } catch (err) {
+        entries = [];
+      }
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, entries: entries }));
+    }
+
+    function normalizeEntry(item) {
+      if (!item || (item.type !== "income" && item.type !== "expense")) return null;
+      var amount = Number(item.amount);
+      if (!isFinite(amount) || amount <= 0) return null;
+      amount = Math.round(amount * 100) / 100;
+      var date = String(item.date || "");
+      if (!isValidISODate(date)) return null;
+      var category = String(item.category || "").trim();
+      var note = String(item.note || "").trim().slice(0, 200);
+      var id = String(item.id || uid());
+      return { id: id, type: item.type, amount: amount, category: category, note: note, date: date };
+    }
+
+    function monthEntries(year, month) {
+      var prefix = year + "-" + pad(month + 1) + "-";
+      return entries.filter(function (e) { return e.date.indexOf(prefix) === 0; });
+    }
+
+    function dayEntries(iso) {
+      return entries
+        .filter(function (e) { return e.date === iso; })
+        .sort(function (a, b) {
+          if (a.type !== b.type) return a.type === "expense" ? -1 : 1;
+          return a.id < b.id ? 1 : -1;
+        });
+    }
+
+    function totals(list) {
+      var income = 0, expense = 0;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].type === "income") income += list[i].amount;
+        else expense += list[i].amount;
+      }
+      income = Math.round(income * 100) / 100;
+      expense = Math.round(expense * 100) / 100;
+      return { income: income, expense: expense, balance: Math.round((income - expense) * 100) / 100 };
+    }
+
+    function renderHeader() {
+      $("todayLabel").textContent = "今天是 " + formatLongDate(todayISO());
+    }
+
+    function renderSummary() {
+      var t = totals(monthEntries(viewYear, viewMonth));
+      $("sumIncome").textContent = formatHKD(t.income);
+      $("sumExpense").textContent = formatHKD(t.expense);
+      var bal = $("sumBalance");
+      bal.textContent = formatHKD(t.balance);
+      bal.className = "value balance" + (t.balance > 0 ? " pos" : t.balance < 0 ? " neg" : "");
+    }
+
+    function renderCalendar() {
+      $("monthTitle").textContent = viewYear + "年" + (viewMonth + 1) + "月";
+      var now = new Date();
+      var isCurrent = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+      $("jumpToday").hidden = isCurrent;
+
+      var first = new Date(viewYear, viewMonth, 1);
+      var startWeekday = first.getDay();
+      var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      var prevDays = new Date(viewYear, viewMonth, 0).getDate();
+      var cells = [];
+      var i, day, iso, inMonth, dateObj;
+
+      for (i = 0; i < startWeekday; i++) {
+        day = prevDays - startWeekday + 1 + i;
+        dateObj = new Date(viewYear, viewMonth - 1, day);
+        cells.push({ date: toISODate(dateObj), inMonth: false, day: day });
+      }
+      for (day = 1; day <= daysInMonth; day++) {
+        cells.push({ date: viewYear + "-" + pad(viewMonth + 1) + "-" + pad(day), inMonth: true, day: day });
+      }
+      var rest = cells.length % 7 === 0 ? 0 : 7 - (cells.length % 7);
+      for (i = 1; i <= rest; i++) {
+        dateObj = new Date(viewYear, viewMonth + 1, i);
+        cells.push({ date: toISODate(dateObj), inMonth: false, day: i });
+      }
+
+      var cal = $("calendar");
+      cal.textContent = "";
+      var today = todayISO();
+      cells.forEach(function (cell) {
+        var t = totals(dayEntries(cell.date));
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "day" + (cell.inMonth ? " in-month" : " out") + (cell.date === today ? " is-today" : "") + ((t.income || t.expense) ? " has" : "");
+        btn.setAttribute("role", "gridcell");
+        btn.setAttribute("aria-label", formatLongDate(cell.date));
+        btn.dataset.date = cell.date;
+
+        var num = document.createElement("span");
+        num.className = "num";
+        num.textContent = String(cell.day);
+        btn.appendChild(num);
+
+        if (t.income) {
+          var inc = document.createElement("span");
+          inc.className = "amt income";
+          inc.textContent = "+" + compactAmt(t.income);
+          btn.appendChild(inc);
+        }
+        if (t.expense) {
+          var exp = document.createElement("span");
+          exp.className = "amt expense";
+          exp.textContent = "-" + compactAmt(t.expense);
+          btn.appendChild(exp);
+        }
+        cal.appendChild(btn);
+      });
+
+      $("emptyHint").hidden = entries.length > 0;
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderSummary();
+      renderCalendar();
+    }
+
+    function lockBody() {
+      var anyOpen = document.querySelector(".sheet.open");
+      document.body.classList.toggle("locked", !!anyOpen);
+    }
+
+    function openSheet(sheet, backdrop) {
+      sheet.hidden = false;
+      backdrop.hidden = false;
+      requestAnimationFrame(function () {
+        backdrop.classList.add("open");
+        sheet.classList.add("open");
+        lockBody();
+      });
+    }
+
+    function closeSheet(sheet, backdrop, after) {
+      sheet.classList.remove("open");
+      backdrop.classList.remove("open");
+      lockBody();
+      window.setTimeout(function () {
+        if (!sheet.classList.contains("open")) sheet.hidden = true;
+        after && after();
+      }, 280);
+    }
+
+    function renderChips() {
+      var box = $("categoryChips");
+      box.textContent = "";
+      var list = CATS[entryType] || [];
+      list.forEach(function (name) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip" + (selectedCategory === name ? " on" : "");
+        btn.textContent = name;
+        btn.addEventListener("click", function () {
+          selectedCategory = selectedCategory === name ? "" : name;
+          renderChips();
+        });
+        box.appendChild(btn);
+      });
+    }
+
+    function sanitizeAmountInput(raw) {
+      var s = String(raw || "").replace(/[^\d.]/g, "");
+      var first = s.indexOf(".");
+      if (first !== -1) {
+        s = s.slice(0, first + 1) + s.slice(first + 1).replace(/\./g, "");
+        var parts = s.split(".");
+        s = parts[0] + "." + parts[1].slice(0, 2);
+      }
+      if (s.length > 1 && s[0] === "0" && s[1] !== ".") s = s.replace(/^0+/, "") || "0";
+      return s;
+    }
+
+    function currentAmount() {
+      var n = Number($("amountInput").value);
+      return isFinite(n) ? Math.round(n * 100) / 100 : 0;
+    }
+
+    function updateSaveState() {
+      $("saveBtn").disabled = !(currentAmount() > 0 && isValidISODate($("dateInput").value));
+    }
+
+    function openEntrySheet(type, entry) {
+      entryType = type;
+      editingId = entry ? entry.id : null;
+      selectedCategory = entry ? (entry.category || "") : "";
+      $("entryTitle").textContent = (editingId ? "編輯" : "新增") + (type === "income" ? "收入" : "支出");
+      $("amountInput").value = entry ? String(entry.amount) : "";
+      $("noteInput").value = entry ? (entry.note || "") : "";
+      $("dateInput").value = entry ? entry.date : (selectedDate || todayISO());
+      var saveBtn = $("saveBtn");
+      saveBtn.className = "save-btn " + (type === "income" ? "income-mode" : "expense-mode");
+      saveBtn.textContent = "儲存";
+      renderChips();
+      updateSaveState();
+      openSheet($("entrySheet"), $("entryBackdrop"));
+      window.setTimeout(function () { $("amountInput").focus(); }, 320);
+    }
+
+    function closeEntrySheet() {
+      closeSheet($("entrySheet"), $("entryBackdrop"), function () {
+        editingId = null;
+        $("amountInput").blur();
+      });
+    }
+
+    function saveEntry() {
+      var amount = currentAmount();
+      var date = $("dateInput").value;
+      if (!(amount > 0) || !isValidISODate(date)) return;
+      var note = $("noteInput").value.trim().slice(0, 200);
+      if (editingId) {
+        var found = false;
+        entries = entries.map(function (item) {
+          if (item.id !== editingId) return item;
+          found = true;
+          return { id: item.id, type: entryType, amount: amount, category: selectedCategory, note: note, date: date };
+        });
+        if (!found) {
+          entries.push({ id: editingId, type: entryType, amount: amount, category: selectedCategory, note: note, date: date });
+        }
+      } else {
+        entries.push({ id: uid(), type: entryType, amount: amount, category: selectedCategory, note: note, date: date });
+      }
+      save();
+      selectedDate = date;
+      var d = parseISODate(date);
+      viewYear = d.getFullYear();
+      viewMonth = d.getMonth();
+      renderAll();
+      closeEntrySheet();
+      if ($("daySheet").classList.contains("open")) renderDaySheet(selectedDate);
+      showToast("已儲存");
+    }
+
+    function renderDaySheet(iso) {
+      selectedDate = iso;
+      $("dayTitle").textContent = formatLongDate(iso);
+      var list = dayEntries(iso);
+      var t = totals(list);
+      $("dayMeta").textContent = "";
+      var inc = document.createElement("span");
+      inc.textContent = "收入 " + formatHKD(t.income);
+      inc.style.color = "var(--income)";
+      var exp = document.createElement("span");
+      exp.textContent = "支出 " + formatHKD(t.expense);
+      exp.style.color = "var(--expense)";
+      $("dayMeta").appendChild(inc);
+      $("dayMeta").appendChild(exp);
+
+      var box = $("dayList");
+      box.textContent = "";
+      if (!list.length) {
+        var empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "這天未有紀錄";
+        box.appendChild(empty);
+        return;
+      }
+      list.forEach(function (item) {
+        var row = document.createElement("div");
+        row.className = "entry";
+
+        var info = document.createElement("div");
+        var cat = document.createElement("div");
+        cat.className = "cat";
+        cat.textContent = item.category || (item.type === "income" ? "收入" : "支出");
+        info.appendChild(cat);
+        if (item.note) {
+          var note = document.createElement("div");
+          note.className = "note";
+          note.textContent = item.note;
+          info.appendChild(note);
+        }
+        row.appendChild(info);
+
+        var money = document.createElement("div");
+        money.className = "money " + (item.type === "income" ? "income" : "expense");
+        money.style.color = item.type === "income" ? "var(--income)" : "var(--expense)";
+        money.textContent = (item.type === "income" ? "+" : "−") + formatHKD(item.amount);
+        row.appendChild(money);
+
+        var actions = document.createElement("div");
+        actions.className = "entry-actions";
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "mini";
+        editBtn.textContent = "編輯";
+        editBtn.addEventListener("click", function () { openEntrySheet(item.type, item); });
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "mini danger";
+        delBtn.textContent = "刪除";
+        delBtn.addEventListener("click", function () { confirmDelete(item.id); });
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        row.appendChild(actions);
+        box.appendChild(row);
+      });
+    }
+
+    function openDaySheet(iso) {
+      renderDaySheet(iso);
+      openSheet($("daySheet"), $("dayBackdrop"));
+    }
+
+    function closeDaySheet() {
+      closeSheet($("daySheet"), $("dayBackdrop"));
+    }
+
+    function confirmDelete(id) {
+      openConfirm("確定刪除這筆紀錄？此操作不能復原。", "刪除", function () {
+        entries = entries.filter(function (item) { return item.id !== id; });
+        save();
+        renderAll();
+        if ($("daySheet").classList.contains("open") && selectedDate) renderDaySheet(selectedDate);
+        showToast("已刪除");
+      });
+    }
+
+    function openConfirm(message, okLabel, onOk) {
+      $("confirmMsg").textContent = message;
+      $("confirmOk").textContent = okLabel || "確定";
+      confirmCallback = onOk;
+      openSheet($("confirmSheet"), $("confirmBackdrop"));
+    }
+
+    function closeConfirm() {
+      confirmCallback = null;
+      closeSheet($("confirmSheet"), $("confirmBackdrop"));
+    }
+
+    function showToast(text) {
+      var el = $("toast");
+      el.textContent = text;
+      el.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { el.classList.remove("show"); }, 1800);
+    }
+
+    function exportJson() {
+      var payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        entries: entries
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "記帳備份-" + todayISO() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      showToast("已匯出 " + entries.length + " 筆");
+    }
+
+    function importJsonFile(file) {
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(String(reader.result || ""));
+          var list = Array.isArray(data) ? data : (data && data.entries);
+          if (!Array.isArray(list)) throw new Error("format");
+          var next = list.map(normalizeEntry).filter(Boolean);
+          if (!next.length && list.length) throw new Error("empty-valid");
+          openConfirm(
+            "匯入將取代現有的 " + entries.length + " 筆紀錄（檔案內有 " + next.length + " 筆有效紀錄）。確定嗎？",
+            "取代並匯入",
+            function () {
+              entries = next;
+              save();
+              var now = new Date();
+              viewYear = now.getFullYear();
+              viewMonth = now.getMonth();
+              renderAll();
+              if ($("daySheet").classList.contains("open") && selectedDate) renderDaySheet(selectedDate);
+              showToast("已匯入 " + entries.length + " 筆");
+            }
+          );
+        } catch (err) {
+          showToast("無法讀取備份檔");
+        }
+        $("importFile").value = "";
+      };
+      reader.onerror = function () {
+        showToast("無法讀取備份檔");
+        $("importFile").value = "";
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    function closeTopSheet() {
+      if ($("confirmSheet").classList.contains("open")) { closeConfirm(); return true; }
+      if ($("menuSheet").classList.contains("open")) {
+        closeSheet($("menuSheet"), $("menuBackdrop"));
+        return true;
+      }
+      if ($("entrySheet").classList.contains("open")) { closeEntrySheet(); return true; }
+      if ($("daySheet").classList.contains("open")) { closeDaySheet(); return true; }
+      return false;
+    }
+
+    function bind() {
+      $("incomeBtn").addEventListener("click", function () { openEntrySheet("income"); });
+      $("expenseBtn").addEventListener("click", function () { openEntrySheet("expense"); });
+      $("closeEntry").addEventListener("click", closeEntrySheet);
+      $("entryBackdrop").addEventListener("click", closeEntrySheet);
+      $("saveBtn").addEventListener("click", saveEntry);
+
+      $("amountInput").addEventListener("input", function (ev) {
+        var next = sanitizeAmountInput(ev.target.value);
+        if (ev.target.value !== next) ev.target.value = next;
+        updateSaveState();
+      });
+      $("dateInput").addEventListener("change", updateSaveState);
+      $("amountInput").addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); saveEntry(); }
+      });
+
+      $("prevMonth").addEventListener("click", function () {
+        if (viewMonth === 0) { viewYear -= 1; viewMonth = 11; }
+        else viewMonth -= 1;
+        renderAll();
+      });
+      $("nextMonth").addEventListener("click", function () {
+        if (viewMonth === 11) { viewYear += 1; viewMonth = 0; }
+        else viewMonth += 1;
+        renderAll();
+      });
+      $("jumpToday").addEventListener("click", function () {
+        var now = new Date();
+        viewYear = now.getFullYear();
+        viewMonth = now.getMonth();
+        renderAll();
+      });
+      $("calendar").addEventListener("click", function (ev) {
+        var btn = ev.target.closest(".day");
+        if (!btn || !btn.dataset.date) return;
+        var iso = btn.dataset.date;
+        var d = parseISODate(iso);
+        if (d.getFullYear() !== viewYear || d.getMonth() !== viewMonth) {
+          viewYear = d.getFullYear();
+          viewMonth = d.getMonth();
+          renderAll();
+        }
+        openDaySheet(iso);
+      });
+
+      $("closeDay").addEventListener("click", closeDaySheet);
+      $("dayBackdrop").addEventListener("click", closeDaySheet);
+
+      $("menuBtn").addEventListener("click", function () {
+        openSheet($("menuSheet"), $("menuBackdrop"));
+      });
+      $("closeMenu").addEventListener("click", function () { closeSheet($("menuSheet"), $("menuBackdrop")); });
+      $("menuBackdrop").addEventListener("click", function () { closeSheet($("menuSheet"), $("menuBackdrop")); });
+      $("exportBtn").addEventListener("click", function () {
+        closeSheet($("menuSheet"), $("menuBackdrop"));
+        exportJson();
+      });
+      $("importBtn").addEventListener("click", function () { $("importFile").click(); });
+      $("importFile").addEventListener("change", function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        closeSheet($("menuSheet"), $("menuBackdrop"));
+        importJsonFile(file);
+      });
+
+      $("closeConfirm").addEventListener("click", closeConfirm);
+      $("confirmCancel").addEventListener("click", closeConfirm);
+      $("confirmBackdrop").addEventListener("click", closeConfirm);
+      $("confirmOk").addEventListener("click", function () {
+        var fn = confirmCallback;
+        confirmCallback = null;
+        closeSheet($("confirmSheet"), $("confirmBackdrop"));
+        if (fn) fn();
+      });
+
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape") closeTopSheet();
+      });
+    }
+
+    function init() {
+      var now = new Date();
+      viewYear = now.getFullYear();
+      viewMonth = now.getMonth();
+      load();
+      bind();
+      renderAll();
+      if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+        navigator.serviceWorker.register("./sw.js").catch(function () {});
+      }
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
